@@ -36,11 +36,11 @@ class Redis
       def mget(*keys)
         super *keys.map {|key| interpolate(key) } if keys.any?
       end
-      
+
       def expire(key, ttl)
          namespace(key) { |key| super(key, ttl) }
       end
-      
+
       def ttl(key)
          namespace(key) { |key| super(key) }
       end
@@ -59,7 +59,11 @@ class Redis
         end
 
         def interpolate(key)
-          key.match(namespace_regexp) ? key : "#{@namespace}:#{key}"
+          key.match(namespace_regexp) ? key : "#{prefix}:#{key}"
+        end
+
+        def prefix
+          @namespace.is_a?(Proc) ? @namespace.call : @namespace
         end
 
         def strip_namespace(key)
@@ -67,7 +71,11 @@ class Redis
         end
 
         def namespace_regexp
-          @namespace_regexp ||= %r{^#{@namespace}\:}
+          if @namespace.is_a?(Proc)
+            %r{^#{prefix}\:}
+          else
+            @namespace_regexp ||= %r{^#{@namespace}\:}
+          end
         end
     end
   end
